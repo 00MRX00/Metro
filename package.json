@@ -1,0 +1,33 @@
+{
+  "name": "metro",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "server": "nodemon index.js",
+    "client": "npm run start --prefix client",
+    "dev": "concurrently \"npm run server\" \"npm run client\""
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/00MRX00/Metro.git"
+  },
+  "author": "MRX",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/00MRX00/Metro/issues"
+  },
+  "homepage": "https://github.com/00MRX00/Metro#readme",
+  "dependencies": {
+    "config": "^3.3.3",
+    "cors": "^2.8.5",
+    "express": "^4.17.1",
+    "express-validator": "^6.8.0",
+    "pg": "^8.5.1"
+  },
+  "devDependencies": {
+    "concurrently": "^5.3.0",
+    "nodemon": "^2.0.6"
+  }
+}
