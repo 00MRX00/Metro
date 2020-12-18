@@ -1,138 +1,49 @@
 const { Router } = require('express');
-const { check, validationResult } = require('express-validator')
 const pool = require('../db/db');
 const router = Router();
 
 router.get('/stations', async (_, res) => {
     try {
-        const allStations = await pool.query('SELECT * FROM stations');
+        const allStations = await pool.query(`
+            SELECT station_id,s.name,lines.name as line 
+            FROM stations as s
+            INNER JOIN lines ON s.line = lines.line_id;
+        `);
         return res.status(200).json({ stations: allStations.rows })
     } catch (e) {
-        return res.status(500).json({ message: e.message || 'Something went wrong, please, try again' })
+        return res.status(500).json({ message: e.message })
     }
 })
 
-router.post(
-    '/stations',
-    [
-        check('name', 'Incorrect name. Station with the same already exists.')
-            .exists()
-            .withMessage('Incorrect name. It\'s a required field.')
-            .bail()
-            .custom(async value => {
-                const st = await pool.query('SELECT * FROM stations WHERE name = $1', [value]);
-                if (st.rowCount) {
-                    return Promise.reject();
-                }
-            }),
-        check('line', 'Incorrect line. Line with such id doesn\'t exists.')
-            .exists()
-            .withMessage('Incorrect line. It\'s a required field.')
-            .bail()
-            .custom(async value => {
-                const ln = await pool.query('SELECT * FROM lines WHERE line_id = $1', [value]);
-                if (!ln.rowCount) {
-                    return Promise.reject();
-                }
-            })
-    ],
-    async (req, res) => {
+router.post('/stations', async (req, res) => {
         try {
-            const errors = validationResult(req);
-            if (!errors.isEmpty()) {
-                return res.status(400).json({
-                    message: 'Incorrect data',
-                    errors: errors.array()
-                });
-            }
-
             const { name, line } = req.body;
-            const newStation = await pool.query('INSERT INTO stations (name, line) VALUES ($1, $2) RETURNING *', [name, line]);
-            return res.status(201).json({ message: 'New station added', newStation: newStation.rows[0] })
+            await pool.query('INSERT INTO stations (name, line) VALUES ($1, $2)', [name, line]);
         } catch (e) {
-            return res.status(500).json({ message: e.message || 'Something went wrong, please, try again' })
+            return res.status(500).json({ message: e.message })
         }
+        return res.status(201).json({ message: 'New station added' })
     })
 
-router.get(
-    '/stations/:id',
-    async (req, res) => {
+router.put('/stations/:id', async (req, res) => {
         try {
-            const { id } = req.params;
-
-            const stations = await pool.query('SELECT * FROM stations WHERE station_id = $1', [id]);
-            if (stations.rowCount) {
-                return res.status(200).json({ stations: stations.rows[0] })
-            }
-            return res.status(400).json({ message: 'There\'s no stations with such id' })
-        } catch (e) {
-            return res.status(500).json({ message: e.message || 'Something went wrong, please, try again' })
-        }
-    })
-
-router.put(
-    '/stations/:id',
-    [
-        check('name', 'Incorrect name. Station with the same already exists.')
-            .exists()
-            .withMessage('Incorrect name. It\'s a required field.')
-            .bail()
-            .custom(async value => {
-                const st = await pool.query('SELECT * FROM stations WHERE name = $1', [value]);
-                if (st.rowCount) {
-                    return Promise.reject();
-                }
-            }),
-        check('line', 'Incorrect line. Line with such id doesn\'t exists.')
-            .exists()
-            .withMessage('Incorrect line. It\'s a required field.')
-            .bail()
-            .custom(async value => {
-                const ln = await pool.query('SELECT * FROM lines WHERE line_id = $1', [value]);
-                if (!ln.rowCount) {
-                    return Promise.reject();
-                }
-            })
-    ],
-    async (req, res) => {
-        try {
-            const errors = validationResult(req);
-
-            if (!errors.isEmpty()) {
-                return res.status(400).json({
-                    message: 'Incorrect data',
-                    errors: errors.array()
-                });
-            }
-
             const { id } = req.params;
             const { name, line } = req.body;
-
-            const station = await pool.query('UPDATE stations SET (name, line) = ($1, $2) WHERE station_id = $3 RETURNING *', [name, line, id]);
-
-            if (station.rowCount) {
-                return res.status(200).json({ message: 'Station updated', station: station.rows[0] })
-            }
-            return res.status(400).json({ message: 'There\'s no station with such id' })
+            await pool.query('UPDATE stations SET (name, line) = ($1, $2) WHERE station_id = $3', [name, line, id]);
         } catch (e) {
-            return res.status(500).json({ message: e.message || 'Something went wrong, please, try again' })
+            return res.status(500).json({ message: e.message })
         }
+        return res.status(200).json({ message: 'Station updated' })
     })
 
-router.delete(
-    '/stations/:id',
-    async (req, res) => {
+router.delete('/stations/:id', async (req, res) => {
         try {
             const { id } = req.params;
-
-            const station = await pool.query('DELETE FROM stations WHERE station_id = $1', [id]);
-            if (station.rowCount) {
-                return res.status(200).json({ message: 'Station was deleted' })
-            }
-            return res.status(400).json({ message: 'There\'s no station with such id' })
+            await pool.query('DELETE FROM stations WHERE station_id = $1', [id]);
         } catch (e) {
-            return res.status(500).json({ message: e.message || 'Something went wrong, please, try again' })
+            return res.status(500).json({ message: e.message })
         }
+        return res.status(200).json({ message: 'Station was deleted' })
     })
 
 module.exports = router;
